@@ -2058,6 +2058,31 @@ void backlight_effect_all_off(void)
     backlight_set_color_all( 0, 0, 0 );
 }
 
+void backlight_effect_user(void) 
+{
+  uint8_t offset = ( g_tick << g_config.effect_speed ) & 0xFF;
+
+  // Relies on hue being 8-bit and wrapping
+  HSV hsv = { .h = 0, .s = 255, .v = 0 };
+  RGB rgb;
+  Point point;
+  for (int i = 0; i < BACKLIGHT_LED_COUNT; i++) 
+  {
+    uint16_t hit_time = g_key_hit[i];
+
+    hit_time *= 13;
+    if (hit_time > 255) hit_time = 255;
+
+    uint8_t brightness = 255 - hit_time;
+    
+    map_led_to_point( i, &point );
+    hsv.h = point.x + offset;
+    hsv.v = brightness;
+    rgb = hsv_to_rgb(hsv);
+    backlight_set_color(i, rgb.r, rgb.g, rgb.b);
+  }
+}
+
 // Solid color
 void backlight_effect_solid_color(void)
 {
@@ -2539,7 +2564,8 @@ static void gpt_backlight_timer_task(GPTDriver *gptp)
             backlight_effect_cycle_up_down();
             break;
         case 8:
-            backlight_effect_jellybean_raindrops( initialize );
+            //backlight_effect_jellybean_raindrops( initialize );
+            backlight_effect_user();
             break;
         case 9:
             backlight_effect_cycle_radial1();
@@ -2547,6 +2573,9 @@ static void gpt_backlight_timer_task(GPTDriver *gptp)
         case 10:
             backlight_effect_cycle_radial2();
             break;
+        // case 11:
+        //     backlight_effect_user();
+        //     break;
         default:
             backlight_effect_all_off();
             break;
